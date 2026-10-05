@@ -1,33 +1,47 @@
-"""
-    Dinheiro em centavos (int)
-"""
 from dataclasses import dataclass
+from decimal import Decimal
 
-@dataclass
+from src._shared.domain.exceptions import CurrencyNotFoundException
+from src._shared.domain.value_objects.currency_value_object import CurrencyValueObject
+
+@dataclass(frozen=True)
 class MoneyValueObject:
     money: int
-    currency: str = "BRL"
+    currency: CurrencyValueObject
 
-    def _is_positive(self) -> bool:
-        return self.money
+    def __post_init__(self) -> None:
+        self.validate()
 
-    def format_brl(self) -> str:
-        v = int(self.money)
-        sign = ""
-        if v < 0:
-            sign = "-"
-            v = -v
-        return f"{sign}R$ {v // 100},{v % 100:02d}"
+    def validate(self) -> None:
+        if not isinstance(self.currency, CurrencyValueObject):
+            raise CurrencyNotFoundException(
+                f"Moeda inválida: {self.currency}"  
+            )
+
+    @property
+    def is_positive(self) -> bool:
+        return self.money > 0
+
+    def format(self) -> str:
+        return self.currency.format(self.money)
 
     @staticmethod
-    def format_to_cents(value: str) -> int:
-        clean = value.replace(",", ".")
-        cents = int(float(clean) * 100)
-        return cents
+    def to_cents(value: str) -> int:
+        return int(
+            Decimal(value.replace(",", ".")) * 100
+        )
 
     @staticmethod
-    def total(values: list["MoneyValueObject"]) -> int:
-        total = 0
-        for v in values:
-            total += v.money
-        return total
+    def total(values: list["MoneyValueObject"]) -> "MoneyValueObject":
+        if not values:
+            raise ValueError("Lista vazia")
+
+        currency = values[0].currency
+
+        if any(v.currency != currency for v in values):
+            raise CurrencyNotFoundException()
+
+        return MoneyValueObject(
+            money=sum(v.money for v in values),
+            currency=currency
+        )
