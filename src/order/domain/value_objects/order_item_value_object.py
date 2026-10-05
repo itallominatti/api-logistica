@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from uuid import UUID
 
-from src._shared.domain.value_objects.money_value_object import Money, MoneyValueObject
+from src._shared.domain.value_objects.money_value_object import MoneyValueObject
 
 @dataclass(frozen=True, slots=True)
 class OrderItemValueObject:
